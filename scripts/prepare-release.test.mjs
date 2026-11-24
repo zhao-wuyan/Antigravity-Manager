@@ -12,6 +12,7 @@ const names = [
   `AMT_${version}_aarch64.dmg`, `AMT_${version}_x64.dmg`,
   'AMT_aarch64.app.tar.gz', 'AMT_aarch64.app.tar.gz.sig',
   'AMT_x64.app.tar.gz', 'AMT_x64.app.tar.gz.sig',
+  `AMT_${version}_x64-setup.exe`, `AMT_${version}_x64-setup.exe.sig`,
 ];
 
 try {
@@ -20,7 +21,7 @@ try {
   const run = () => spawnSync(process.execPath, ['scripts/prepare-release.mjs', input, output, version, 'example/amt'], { encoding: 'utf8' });
   assert.equal(run().status, 0);
   const updater = JSON.parse(readFileSync(join(output, 'updater.json'), 'utf8'));
-  assert.deepEqual(Object.keys(updater.platforms).sort(), ['darwin-aarch64', 'darwin-x86_64']);
+  assert.deepEqual(Object.keys(updater.platforms).sort(), ['darwin-aarch64', 'darwin-x86_64', 'windows-x86_64']);
   assert.equal(readdirSync(output).length, names.length + 2);
   assert.equal(readFileSync(join(output, 'SHA256SUMS'), 'utf8').trim().split('\n').length, names.length + 1);
   const testCask = join(root, 'antigravity-tools.rb');
@@ -40,6 +41,17 @@ try {
   const invalidSignature = run();
   assert.notEqual(invalidSignature.status, 0);
   assert.match(invalidSignature.stderr, /Invalid updater signature/);
+  writeFileSync(join(input, 'AMT_x64.app.tar.gz.sig'), 'AMT_x64.app.tar.gz.sig-test-content-long-enough');
+  rmSync(join(input, `AMT_${version}_x64-setup.exe`));
+  const missingWindows = run();
+  assert.notEqual(missingWindows.status, 0);
+  assert.match(missingWindows.stderr, /Missing or empty release asset/);
+
+  writeFileSync(join(input, `AMT_${version}_x64-setup.exe`), 'restored-win-installer');
+  writeFileSync(join(input, `AMT_${version}_x64-setup.exe.sig`), 'invalid');
+  const invalidWinSignature = run();
+  assert.notEqual(invalidWinSignature.status, 0);
+  assert.match(invalidWinSignature.stderr, /Invalid updater signature/);
   process.stdout.write('Release artifact gate passed.\n');
 } finally {
   rmSync(root, { recursive: true, force: true });

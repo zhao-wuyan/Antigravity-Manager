@@ -18,6 +18,8 @@ const expected = [
   'AMT_aarch64.app.tar.gz.sig',
   'AMT_x64.app.tar.gz',
   'AMT_x64.app.tar.gz.sig',
+  `AMT_${version}_x64-setup.exe`,
+  `AMT_${version}_x64-setup.exe.sig`,
 ];
 
 function collectFiles(directory, files = new Map()) {
@@ -53,6 +55,7 @@ const updater = {
   platforms: {
     'darwin-aarch64': { url: `${base}/AMT_aarch64.app.tar.gz`, signature: signature('AMT_aarch64.app.tar.gz.sig') },
     'darwin-x86_64': { url: `${base}/AMT_x64.app.tar.gz`, signature: signature('AMT_x64.app.tar.gz.sig') },
+    'windows-x86_64': { url: `${base}/AMT_${version}_x64-setup.exe`, signature: signature(`AMT_${version}_x64-setup.exe.sig`) },
   },
 };
 
@@ -65,4 +68,4 @@ const checksums = [...expected, 'updater.json'].sort().map((name) => {
   return `${digest}  ${basename(name)}`;
 });
 writeFileSync(join(outputDir, 'SHA256SUMS'), checksums.join('\n') + '\n');
-process.stdout.write(`Validated ${expected.length} macOS release assets and two updater signatures for v${version}.\n`);
+process.stdout.write(`Validated ${expected.length} macOS/Windows release assets and three updater signatures for v${version}.\n`);
